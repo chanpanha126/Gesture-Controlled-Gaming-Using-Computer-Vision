@@ -26,53 +26,53 @@ cap = cv2.VideoCapture(0)
 
 print("CNN Real-Time Demo Started. Press 'q' to quit.")
 
-try:
-    while cap.isOpened():
-        success, image = cap.read()
-        if not success:
-            break
+while cap.isOpened():
+    success, image = cap.read()
+    if not success:
+        print("Ignoring empty camera frame.")
+        continue
 
-        # Flip the image horizontally for a later selfie-view display
-        # Convert the BGR image to RGB.
-        image = cv2.flip(image, 1)
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Flip the image horizontally for a later selfie-view display
+    # Convert the BGR image to RGB.
+    image = cv2.flip(image, 1)
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Process the hand landmarks
+    results = hands.process(image_rgb)
 
-        # Process the hand landmarks
-        results = hands.process(image_rgb)
+    # Draw the hand annotations on the image.
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            # Extract landmark coordinates
+            landmarks = []
+            for lm in hand_landmarks.landmark:
+                landmarks.extend([lm.x, lm.y, lm.z])
+            
+            # Convert to numpy array and normalize
+            landmarks = np.array(landmarks).reshape(1, -1)
+            landmarks_scaled = scaler.transform(landmarks)
+            
+            # CNN Reshape: (batch, features, channels) -> (1, 63, 1)
+            cnn_input = landmarks_scaled.reshape(1, 63, 1)
+            
+            # Prediction
+            prediction = model.predict(cnn_input, verbose=0)
+            class_id = np.argmax(prediction)
+            confidence = np.max(prediction)
+            label = label_encoder.inverse_transform([class_id])[0]
+            
+            # Draw landmarks
+            mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            
+            # Display Prediction
+            text = f"{label} ({confidence*100:.1f}%)"
+            cv2.putText(image, text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
 
-        # Draw the hand annotations on the image.
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                # Extract landmark coordinates
-                landmarks = []
-                for lm in hand_landmarks.landmark:
-                    landmarks.extend([lm.x, lm.y, lm.z])
+    # Final Display
+    cv2.imshow('CNN Gesture Recognition', image)
+    
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-                # Convert to numpy array and normalize
-                landmarks = np.array(landmarks).reshape(1, -1)
-                landmarks_scaled = scaler.transform(landmarks)
-
-                # CNN Reshape: (batch, features, channels) -> (1, 63, 1)
-                cnn_input = landmarks_scaled.reshape(1, 63, 1)
-
-                # Prediction
-                prediction = model(cnn_input, training=False).numpy()
-                class_id = np.argmax(prediction)
-                confidence = np.max(prediction)
-                label = label_encoder.inverse_transform([class_id])[0]
-
-                # Draw landmarks
-                mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-
-                # Display Prediction
-                text = f"{label} ({confidence*100:.1f}%)"
-                cv2.putText(image, text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
-
-        # Final Display
-        cv2.imshow('CNN Gesture Recognition', image)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-finally:
-    cap.release()
-    cv2.destroyAllWindows()
+cap.release()
+cv2.destroyAllWindows()

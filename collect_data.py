@@ -31,50 +31,49 @@ print("Press 'q' to quit\n")
 
 recording = False
 
-try:
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-        frame = cv2.flip(frame, 1)
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame = cv2.flip(frame, 1)
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        results = hands.process(rgb)
+    results = hands.process(rgb)
 
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
 
-                # Draw landmarks
-                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            # Draw landmarks
+            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-                landmarks = []
+            landmarks = []
 
-                for lm in hand_landmarks.landmark:
-                    landmarks.append(lm.x)
-                    landmarks.append(lm.y)
-                    landmarks.append(lm.z)
+            for lm in hand_landmarks.landmark:
+                landmarks.append(lm.x)
+                landmarks.append(lm.y)
+                landmarks.append(lm.z)
 
-                if recording:
-                    landmarks.append(label)  # add label
-                    data.append(landmarks)
+            if recording:
+                landmarks.append(label)  # add label
+                data.append(landmarks)
 
-        cv2.putText(frame, f"Recording: {recording}", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(frame, f"Recording: {recording}", (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        cv2.imshow("Data Collection", frame)
+    cv2.imshow("Data Collection", frame)
 
-        key = cv2.waitKey(1)
+    key = cv2.waitKey(1)
 
-        if key == ord('s'):
-            recording = True
-            print("Recording started...")
+    if key == ord('s'):
+        recording = True
+        print("Recording started...")
 
-        elif key == ord('q'):
-            break
-finally:
-    cap.release()
-    cv2.destroyAllWindows()
+    elif key == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 
 # Save data
 if data:
